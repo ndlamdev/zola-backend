@@ -37,10 +37,10 @@ inline fun <reified T : Any> error(
     }))
 }
 
-fun <T : Any> Mono<T?>.responseOkWithBody(message: String? = "Response Success!"): Mono<ServerResponse?> {
+fun <T : Any> Mono<T>.responseOkWithBody(message: String? = "Response Success!"): Mono<ServerResponse?> {
     return this.flatMap { ok(it, message) }
 }
 
-fun <T : Any> Mono<T?>.responseOk(message: String? = "Response Success!"): Mono<ServerResponse?> {
+fun <T : Any> Mono<T>.responseOk(message: String? = "Response Success!"): Mono<ServerResponse?> {
     return this.then(ok(null, message))
 }
