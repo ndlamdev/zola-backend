@@ -71,7 +71,14 @@ class UserHandler(
         return request
             .bodyToMonoAndValidate<InviteAddFriendRequest>(validator)
             .flatMap {
-                inviteAddFriendService.sendRequest(it.phoneNumber, it.message)
+                ReactiveSecurityContextHolder.getContext()
+                    .flatMap { securityContext ->
+                        inviteAddFriendService.sendRequest(
+                            securityContext.authentication.name,
+                            it.phoneNumber,
+                            it.message
+                        )
+                    }
             }.responseOk()
     }
 
@@ -89,7 +96,10 @@ class UserHandler(
         return request
             .bodyToMonoAndValidate<ReplyInviteAddFriendRequest>(validator)
             .flatMap {
-                inviteAddFriendService.replyInvite(it.id!!, it.answer)
+                ReactiveSecurityContextHolder.getContext()
+                    .flatMap { securityContext ->
+                        inviteAddFriendService.replyInvite(securityContext.authentication.name, it.id!!, it.answer)
+                    }
             }.responseOk()
     }
 

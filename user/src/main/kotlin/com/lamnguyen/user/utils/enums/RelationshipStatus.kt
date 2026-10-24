@@ -8,6 +8,6 @@
 
 package com.lamnguyen.user.utils.enums
 
-enum class RelationShipStatus {
+enum class RelationshipStatus {
     FRIEND, BLOCKED, REQUESTED, STRANGER, INVITED, SELF
 }

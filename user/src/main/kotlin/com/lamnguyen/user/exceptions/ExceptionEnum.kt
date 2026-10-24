@@ -16,4 +16,7 @@ enum class ExceptionEnum(val code: Int, val message: String) {
     INVITE_EXISTS(3005, "Invite Exists"),
     ERROR_FORMAT_PHONE_NUMBER(3006, "Invalid phone number!"),
     INVITE_NOT_EXISTS(3007, "Invite Not Exists"),
+    SAME_PHONE_NUMBER(3008, "Same phone number"),
+    GenerateKeyRelationshipFailure(3009, "Generate key relation ship failure"),
+    ONLY_INVITE_WHEN_STRANGER(3010, "Only invite when relationship is stranger"),
 }

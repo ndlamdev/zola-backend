@@ -14,11 +14,12 @@ import com.lamnguyen.user.exceptions.ApplicationException
 import com.lamnguyen.user.exceptions.ExceptionEnum
 import com.lamnguyen.user.mappers.IUserMapper
 import com.lamnguyen.user.models.User
-import com.lamnguyen.user.repositories.IFriendShipRepository
+import com.lamnguyen.user.repositories.IRelationshipRepository
 import com.lamnguyen.user.repositories.IUserRepository
 import com.lamnguyen.user.services.business.IUserService
 import com.lamnguyen.user.services.redis.IUserCacheManager
-import com.lamnguyen.user.utils.enums.RelationShipStatus
+import com.lamnguyen.user.utils.enums.RelationshipStatus
+import com.lamnguyen.user.utils.helpers.formatPhoneNumber
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -26,7 +27,7 @@ import reactor.core.publisher.Mono
 @Service
 class UserServiceImpl(
     val userRepository: IUserRepository,
-    val friendRepository: IFriendShipRepository,
+    val relationshipRepository: IRelationshipRepository,
     val userMapper: IUserMapper,
     val userCacheManager: IUserCacheManager
 ) : IUserService {
@@ -43,14 +44,15 @@ class UserServiceImpl(
     }
 
     override fun getAllFriend(ownerPhoneNumber: String): Flux<UserInRelationShip> {
-        return friendRepository.findAllByOwnerPhoneNumber(ownerPhoneNumber)
-            .flatMap { friendShip ->
-                userRepository.findUserByPhoneNumber(friendShip.friendPhoneNumber)
-                    .map {
-                        userMapper.toUserInRelationShip(it).apply {
-                            displayName = friendShip.displayName
-                            relationShipStatus = RelationShipStatus.FRIEND
-                        }
+        val viewer = formatPhoneNumber(ownerPhoneNumber)
+        return relationshipRepository.findAllRelationship(
+            viewer,
+            RelationshipStatus.FRIEND
+        )
+            .flatMap { relationship ->
+                userRepository.findUserByPhoneNumber(if (relationship.phoneA == viewer) relationship.phoneB else relationship.phoneA)
+                    .map { user ->
+                        userMapper.toUserInRelationShip(user, relationship)
                     }
             }
     }

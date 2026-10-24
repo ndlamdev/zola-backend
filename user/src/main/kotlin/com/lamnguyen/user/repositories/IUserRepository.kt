@@ -22,32 +22,33 @@ interface IUserRepository : R2dbcRepository<User, String> {
 
     @Query(
         """
-        SELECT IF(fs.friend_phone_number IS NOT NULL, 'FRIEND', 'STRANGER') as relation_ship_status,
+        SELECT rs.status as relation_ship_status,
             users.*
         FROM users
-                 LEFT JOIN friendships fs
-                           ON fs.friend_phone_number = users.phone_number
-                               AND fs.owner_phone_number = :ownerPhoneNumber
+                 LEFT JOIN relationships rs
+                           ON rs.other_phone = users.phone_number
+                               AND rs.owner_phone = :ownerPhoneNumber
         WHERE (
-            (fs.friend_phone_number IS NOT NULL AND users.phone_number LIKE CONCAT('%', :phoneNumber, '%')) -- Nếu là bạn thì tìm theo like
+            (rs.other_phone IS NOT NULL AND users.phone_number LIKE CONCAT('%', :phoneNumber, '%')) -- Nếu là bạn thì tìm theo like
                 OR
-            (fs.friend_phone_number IS NULL AND users.phone_number = :phoneNumber) -- Nếu không phải là bạn thì tìm chính xác
+            (rs.other_phone IS NULL AND users.phone_number = :phoneNumber) -- Nếu không phải là bạn thì tìm chính xác
             )
-          AND users.phone_number != :ownerPhoneNumber;
+          AND users.phone_number != :ownerPhoneNumber
+          AND rs.status IN ('FRIEND', 'STRANGER');
     """
     )
     fun findFriendAndStrangerByPhoneNumber(ownerPhoneNumber: String, phoneNumber: String): Flux<UserInRelationShip>
 
     @Query(
         """
-        SELECT IF(fs.friend_phone_number IS NOT NULL, 'FRIEND', 'STRANGER') as relation_ship_status,
+        SELECT rs.status as relation_ship_status,
             users.*
         FROM users
-                 LEFT JOIN friendships fs
-                           ON fs.friend_phone_number = users.phone_number
-                               AND fs.owner_phone_number = :ownerPhoneNumber
+                 LEFT JOIN relationships rs
+                           ON rs.other_phone = users.phone_number
+                               AND rs.owner_phone = :ownerPhoneNumber
         WHERE users.phone_number IN (:phoneNumbers)
-          AND users.phone_number != :ownerPhoneNumber;
+          AND rs.status IN ('FRIEND', 'STRANGER');
     """
     )
     fun findFriendAndStrangerByPhoneNumber(ownerPhoneNumber: String, phoneNumbers: List<String>): Flux<UserInRelationShip>

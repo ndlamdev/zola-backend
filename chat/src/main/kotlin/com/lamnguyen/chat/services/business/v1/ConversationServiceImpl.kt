@@ -25,17 +25,12 @@ import com.lamnguyen.chat.services.rsocket.IUserRequester
 import com.lamnguyen.chat.utils.enums.ConversationType
 import com.lamnguyen.chat.utils.enums.MemberRole
 import com.lamnguyen.chat.utils.helpers.KeyGenerator
-import com.lamnguyen.chat.utils.redis.CacheResult
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
-import reactor.kotlin.core.util.function.component1
-import reactor.kotlin.core.util.function.component2
 import java.time.LocalDateTime
-import java.util.function.Function
-import java.util.stream.Collectors
 
 @Service
 class ConversationServiceImpl(
@@ -114,13 +109,13 @@ class ConversationServiceImpl(
                 this.updatedAt = this.createdAt
             }
 
-        val member = phoneNumberMembers.toMutableSet().apply {
-            add(phoneNumberAdmin)
-        }.map { phoneNumber ->
+        val member = users.toMutableSet().map { user ->
             Member().apply {
-                id = if (phoneNumberAdmin == phoneNumber) conversation.admin else KeyGenerator.generateUuidV7()
-                this.phoneNumber = phoneNumber
-                this.role = if (phoneNumberAdmin == phoneNumber) MemberRole.ADMIN else MemberRole.USER
+                id = if (phoneNumberAdmin == user.phoneNumber) conversation.admin else KeyGenerator.generateUuidV7()
+                this.phoneNumber = user.phoneNumber
+                this.role = if (phoneNumberAdmin == user.phoneNumber) MemberRole.ADMIN else MemberRole.USER
+                this.name = user.fullName
+                this.avatar = user.avatar
                 this.joinedBy = conversation.admin
                 this.joinedAt = conversation.createdAt
                 metadata = ConversationMemberMetadata()

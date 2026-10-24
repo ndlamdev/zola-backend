@@ -9,6 +9,7 @@
 package com.lamnguyen.user.repositories
 
 import com.lamnguyen.user.models.InviteAddFriend
+import org.springframework.data.r2dbc.repository.Modifying
 import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.r2dbc.repository.R2dbcRepository
 import org.springframework.stereotype.Repository
@@ -21,26 +22,41 @@ interface IInviteAddFriendRepository : R2dbcRepository<InviteAddFriend, Long> {
         value = """
         SELECT * 
         FROM invite_add_friends 
-        WHERE (
-            (phone_number_sender = :phoneNumberA and phone_number_receiver = :phoneNumberB) 
-            or (phone_number_sender = :phoneNumberB and phone_number_receiver = :phoneNumberA)
-        )
+        WHERE (phone_number_sender = :viewer and phone_number_receiver = :other) 
         AND deleted = false
     """
     )
-    fun findInviteAddFriendAndDeletedIsFalse(phoneNumberA: String, phoneNumberB: String): Mono<InviteAddFriend>
+    fun findInviteAddFriendAndDeletedIsFalse(
+        viewer: String,
+        other: String
+    ): Mono<InviteAddFriend>
+
+    @Query(
+        value = """
+        SELECT * 
+        FROM invite_add_friends 
+        WHERE (phone_number_sender = :other and phone_number_receiver = :viewer) 
+        AND deleted = false
+    """
+    )
+    fun findRequestAddFriendAndDeletedIsFalse(
+        viewer: String,
+        other: String
+    ): Mono<InviteAddFriend>
+
     fun findAllByPhoneNumberReceiverAndDeletedIsFalse(phoneNumberReceiver: String): Flux<InviteAddFriend>
     fun findAllByPhoneNumberSenderAndDeletedIsFalse(phoneNumberSender: String): Flux<InviteAddFriend>
 
     @Query(
         value = """
-        SELECT IF(EXISTS (SELECT *
+        SELECT IF(
+                EXISTS (SELECT *
                         FROM invite_add_friends
-                        WHERE (phone_number_sender = :phoneNumberSender and
-                               phone_number_receiver = :phoneNumberReceiver)
-                           or (phone_number_sender = :phoneNumberReceiver and
-                               phone_number_receiver = :phoneNumberSender)
-                            AND deleted = false), 'TRUE', 'FALSE')
+                        WHERE ((phone_number_sender = :phoneNumberSender and phone_number_receiver = :phoneNumberReceiver)
+                            or (phone_number_sender = :phoneNumberReceiver and phone_number_receiver = :phoneNumberSender))
+                            AND deleted = false), 
+                'TRUE', 
+                'FALSE')
     """
     )
     fun existsInviteAddFriendByPhoneNumberAndDeletedIsFalse(
@@ -48,5 +64,15 @@ interface IInviteAddFriendRepository : R2dbcRepository<InviteAddFriend, Long> {
         phoneNumberReceiver: String
     ): Mono<Boolean>
 
-    fun findByIdAndDeletedIsFalse(id: Long): Mono<InviteAddFriend>
+    fun findByIdAndDeletedIsFalseAndPhoneNumberReceiverEquals(id: Long, receiver: String): Mono<InviteAddFriend>
+
+    @Modifying
+    @Query(
+        value = """
+        UPDATE invite_add_friends
+        SET deleted = true
+        WHERE (phone_number_sender = :phoneNumberSender and phone_number_receiver = :phoneNumberReceiver)
+    """
+    )
+    fun deleteAllByPhoneNumberSenderAndPhoneNumberReceiver(owner: String, other: String): Mono<Long>
 }

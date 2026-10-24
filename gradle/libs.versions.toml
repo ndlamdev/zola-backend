@@ -137,3 +137,12 @@ commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "co
 libphonenumber = { module = "com.googlecode.libphonenumber:libphonenumber", version.ref = "libphonenumber" }
 kryo = { module = "com.esotericsoftware:kryo", version.ref = "kryo" }
 uuid-generator = { module = "com.fasterxml.uuid:java-uuid-generator", version.ref = "uuid" }
+
+############################
+# Test
+############################
+
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+reactor-test = { module = "io.projectreactor:reactor-test" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
+testcontainers-mysql = { module = "org.testcontainers:mysql" }

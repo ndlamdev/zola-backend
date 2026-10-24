@@ -9,9 +9,9 @@
 package com.lamnguyen.user.domain.dto
 
 import com.lamnguyen.user.models.User
-import com.lamnguyen.user.utils.enums.RelationShipStatus
+import com.lamnguyen.user.utils.enums.RelationshipStatus
 
 class UserInRelationShip : User() {
     var displayName: String? = null
-    var relationShipStatus: RelationShipStatus = RelationShipStatus.SELF
+    var relationShipStatus: RelationshipStatus = RelationshipStatus.SELF
 }

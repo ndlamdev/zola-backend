@@ -46,3 +46,4 @@
 **/cloudflared*
 **/*.sh
 docker/**
+**/src/test/

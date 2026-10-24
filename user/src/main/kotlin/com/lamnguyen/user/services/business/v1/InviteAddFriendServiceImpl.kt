@@ -13,42 +13,43 @@ import com.lamnguyen.user.exceptions.ApplicationException
 import com.lamnguyen.user.exceptions.ExceptionEnum
 import com.lamnguyen.user.models.InviteAddFriend
 import com.lamnguyen.user.repositories.IInviteAddFriendRepository
-import com.lamnguyen.user.services.business.IFriendShipService
 import com.lamnguyen.user.services.business.IInviteAddFriendService
+import com.lamnguyen.user.services.business.IRelationshipService
 import com.lamnguyen.user.services.kafka.INotificationKafkaProducer
+import com.lamnguyen.user.utils.helpers.KeyGenerator
 import com.lamnguyen.user.utils.helpers.formatPhoneNumber
-import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.util.function.component1
+import reactor.kotlin.core.util.function.component2
 
 @Service
 class InviteAddFriendServiceImpl(
     val inviteAddFriendRepository: IInviteAddFriendRepository,
     val notificationKafkaProducer: INotificationKafkaProducer,
-    val friendService: IFriendShipService,
+    val relationshipService: IRelationshipService,
 ) : IInviteAddFriendService {
-    override fun sendRequest(phoneNumberReceiver: String, message: String?): Mono<Void> {
+    @Transactional(rollbackFor = [Exception::class])
+    override fun sendRequest(phoneNumberSender: String, phoneNumberReceiver: String, message: String?): Mono<Void> {
+        val phoneNumberSenderFormated = formatPhoneNumber(phoneNumberSender)
         val phoneNumberReceiverFormated = formatPhoneNumber(phoneNumberReceiver)
-        return ReactiveSecurityContextHolder
-            .getContext()
-            .filter { securityContext -> securityContext.authentication.name != phoneNumberReceiverFormated }
-            .flatMap { securityContext ->
-                inviteAddFriend(
-                    securityContext.authentication.name,
-                    phoneNumberReceiverFormated,
-                    message
-                )
-            }
-            .switchIfEmpty(
-                Mono.error(
-                    ApplicationException(
-                        ExceptionEnum.INVITE_ADD_FRIEND_FAILED,
-                        "The phone number that sent the friend request is the same as your phone number"
-                    )
+        if (phoneNumberSenderFormated == phoneNumberReceiverFormated) {
+            return Mono.error(
+                ApplicationException(
+                    ExceptionEnum.INVITE_ADD_FRIEND_FAILED,
+                    "The phone number that sent the friend request is the same as your phone number"
                 )
             )
-            .then()
+        }
+
+
+        return inviteAddFriend(
+            phoneNumberSenderFormated,
+            phoneNumberReceiverFormated,
+            message
+        ).then()
     }
 
     private fun inviteAddFriend(
@@ -61,14 +62,18 @@ class InviteAddFriendServiceImpl(
             this.phoneNumberSender = formatPhoneNumber(phoneNumberSender)
             this.message = message
         }
-        return existsInviteAddFriend(
-            formatPhoneNumber(phoneNumberReceiver),
-            formatPhoneNumber(phoneNumberSender)
+
+        return Mono.zip(
+            existsInviteAddFriend(
+                formatPhoneNumber(phoneNumberReceiver),
+                formatPhoneNumber(phoneNumberSender)
+            ), relationshipService.isStranger(data.phoneNumberSender, data.phoneNumberReceiver)
         )
-            .filter { !it }
-            .switchIfEmpty(Mono.error(ApplicationException(ExceptionEnum.INVITE_EXISTS)))
-            .flatMap {
-                inviteAddFriendRepository.save(data)
+            .flatMap { (existsInviteAddFriend, isStranger) ->
+                if (existsInviteAddFriend) return@flatMap Mono.error(ApplicationException(ExceptionEnum.INVITE_EXISTS))
+                if (!isStranger) return@flatMap Mono.error(ApplicationException(ExceptionEnum.ONLY_INVITE_WHEN_STRANGER))
+
+                return@flatMap inviteAddFriendRepository.save(data)
                     .flatMap {
                         notificationKafkaProducer.sendNotification(InviteAddFriendEvent(phoneNumberSender))
                         Mono.just(it)
@@ -89,16 +94,23 @@ class InviteAddFriendServiceImpl(
         )
     }
 
-    override fun replyInvite(id: Long, answer: Boolean): Mono<Void> {
-        return inviteAddFriendRepository.findByIdAndDeletedIsFalse(id)
+    override fun replyInvite(phoneNumberReceiver: String, id: Long, answer: Boolean): Mono<Void> {
+        return inviteAddFriendRepository.findByIdAndDeletedIsFalseAndPhoneNumberReceiverEquals(
+            id,
+            formatPhoneNumber(phoneNumberReceiver)
+        )
             .switchIfEmpty(Mono.error(ApplicationException(ExceptionEnum.INVITE_NOT_EXISTS)))
             .flatMap { invite ->
+                invite.accepted = answer
+                invite.deleted = true
+
+                val flowAddFriend =
+                    if (answer) relationshipService.addFriend(invite.phoneNumberSender, invite.phoneNumberReceiver)
+                    else Mono.just(true)
+
                 return@flatMap Mono.zip(
-                    inviteAddFriendRepository.save(invite.apply {
-                        this.accepted = answer
-                        this.deleted = true
-                    }),
-                    friendService.addFriend(invite.phoneNumberSender, invite.phoneNumberReceiver)
+                    inviteAddFriendRepository.save(invite),
+                    flowAddFriend
                 )
             }
             .then()
@@ -117,5 +129,12 @@ class InviteAddFriendServiceImpl(
             senderPhoneNumber,
             receiverPhoneNumber
         )
+    }
+
+    override fun removeInvite(phoneNumberSender: String, phoneNumberReceiver: String): Mono<Void> {
+        return inviteAddFriendRepository.deleteAllByPhoneNumberSenderAndPhoneNumberReceiver(
+            formatPhoneNumber(phoneNumberSender),
+            formatPhoneNumber(phoneNumberReceiver)
+        ).then()
     }
 }

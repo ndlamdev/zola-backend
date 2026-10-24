@@ -47,10 +47,19 @@ dependencies {
     implementation(libs.jackson.jsr310)
     implementation(libs.redisson)
     implementation(libs.redisson.spring.data)
+
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.reactor.test)
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.mysql)
 }
 
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xjsr305=strict")
     }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
