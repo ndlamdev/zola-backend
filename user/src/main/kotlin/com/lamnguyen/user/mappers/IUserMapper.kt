@@ -14,8 +14,6 @@ import com.lamnguyen.user.models.Relationship
 import com.lamnguyen.user.models.User
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
-import org.mapstruct.Named
-import org.mapstruct.TargetPropertyName
 
 @Mapper(componentModel = "spring")
 interface IUserMapper {

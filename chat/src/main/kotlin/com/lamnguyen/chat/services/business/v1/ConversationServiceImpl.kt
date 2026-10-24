@@ -41,12 +41,11 @@ class ConversationServiceImpl(
 ) : IConversationService {
 
     @Transactional
-    override fun createConversation(createConversationRequest: CreateConversationRequest): Mono<Conversation> {
-        return ReactiveSecurityContextHolder.getContext()
-            .map { it.authentication }
-            .flatMap { auth ->
-                createConversation(auth.name!!, createConversationRequest.members ?: listOf())
-            }
+    override fun createConversation(
+        admin: String,
+        createConversationRequest: CreateConversationRequest
+    ): Mono<Conversation> {
+        return createConversation(admin, createConversationRequest.members ?: listOf())
     }
 
     @Transactional
@@ -114,8 +113,6 @@ class ConversationServiceImpl(
                 id = if (phoneNumberAdmin == user.phoneNumber) conversation.admin else KeyGenerator.generateUuidV7()
                 this.phoneNumber = user.phoneNumber
                 this.role = if (phoneNumberAdmin == user.phoneNumber) MemberRole.ADMIN else MemberRole.USER
-                this.name = user.fullName
-                this.avatar = user.avatar
                 this.joinedBy = conversation.admin
                 this.joinedAt = conversation.createdAt
                 metadata = ConversationMemberMetadata()

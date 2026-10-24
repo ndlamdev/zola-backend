@@ -16,7 +16,7 @@ import org.springframework.validation.Validator
 import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Mono
 
-inline fun <reified T : Any, R : Any> Validator.validate(data: T): Mono<T> {
+inline fun <reified T : Any> Validator.validate(data: T): Mono<T> {
     val errors = BeanPropertyBindingResult(this, T::class.java.name)
     this.validate(data, errors)
     if (!errors.hasErrors()) return Mono.just(data)

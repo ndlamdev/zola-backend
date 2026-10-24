@@ -14,7 +14,7 @@ import com.lamnguyen.chat.entities.Conversation
 import reactor.core.publisher.Mono
 
 interface IConversationService {
-    fun createConversation(createConversationRequest: CreateConversationRequest): Mono<Conversation>
+    fun createConversation(admin: String, createConversationRequest: CreateConversationRequest): Mono<Conversation>
     fun createConversation(admin: String, users: List<String>, createdBy: String? = "System"): Mono<Conversation>
     fun removeConversation(id: String): Mono<Void>
     fun getAllDetailConversation(phoneNumber: String): Mono<List<ConversationDto>>

@@ -16,7 +16,6 @@ import com.lamnguyen.user.repositories.IInviteAddFriendRepository
 import com.lamnguyen.user.services.business.IInviteAddFriendService
 import com.lamnguyen.user.services.business.IRelationshipService
 import com.lamnguyen.user.services.kafka.INotificationKafkaProducer
-import com.lamnguyen.user.utils.helpers.KeyGenerator
 import com.lamnguyen.user.utils.helpers.formatPhoneNumber
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
